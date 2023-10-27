@@ -39,7 +39,7 @@ jobs:
       run: |
         docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
         docker build -t app .
-        docker tag app ${{ secrets.DOCKER_UESRNAME }}/cicd-practice
+        docker tag app ${{ secrets.DOCKER_REPO }}/cicd-practice
         docker push ${{ secrets.DOKCKER_REPO }}/cicd-practice
 
     - name: Deply to server
