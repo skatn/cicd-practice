@@ -42,7 +42,7 @@ jobs:
         docker tag app ${{ secrets.DOCKER_REPO }}/cicd-practice
         docker push ${{ secrets.DOCKER_REPO }}/cicd-practice
 
-    - name: Deply to server
+    - name: Deploy to server
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.HOST }}  # ec2 인스턴스 퍼블릭 DNS
@@ -53,3 +53,4 @@ jobs:
           docker stop $(docker ps -a -q)
           docker rm $(docker ps --filter 'status=exited' -a -q)
           docker image prune -a -f
+          docker run -p 8081:8081 ${{ secrets.DOCKER_REPO }}/cicd-practice
