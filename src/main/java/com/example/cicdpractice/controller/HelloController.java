@@ -12,7 +12,7 @@ import java.io.IOException;
 public class HelloController {
 
 //    private static final String FILE_DIR = "D:\\workspace\\yogiyo_team_project\\upload\\";
-    private static final String FILE_DIR = "~/image-store";
+    private static final String FILE_DIR = "/image-store";
 
     @RequestMapping("/hello")
     public String hello() {
