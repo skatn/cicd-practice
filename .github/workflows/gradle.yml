@@ -17,41 +17,51 @@ permissions:
   contents: read
 
 jobs:
-  build:
-
+  build-gradle:
+    name: Project build
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up JDK 11
-      uses: actions/setup-java@v3
-      with:
-        java-version: '11'
-        distribution: 'temurin'
+      - name: Check out repository
+        uses: actions/checkout@v3
+      
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
-    - name: Build with Gradle
-      run: ./gradlew clean build
+      - name: Build with Gradle
+        run: ./gradlew clean build
+      
+  build-docker:
+    name: Docker build
+    needs: build-gradle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build docker image and publish
+        run: |
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          docker build -t app .
+          docker tag app ${{ secrets.DOCKER_REPO }}/${{ secrets.PROJECT_NAME }}
+          docker push ${{ secrets.DOCKER_REPO }}/${{ secrets.PROJECT_NAME }}
 
-    - name: Docker build
-      run: |
-        docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-        docker build -t app .
-        docker tag app ${{ secrets.DOCKER_REPO }}/${{ secrets.PROJECT_NAME }}
-        docker push ${{ secrets.DOCKER_REPO }}/${{ secrets.PROJECT_NAME }}
-
-    - name: Deploy to server
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.HOST }}  # ec2 인스턴스 퍼블릭 DNS
-        username: ec2-user
-        key: ${{ secrets.PRIVATE_KEY }}
-        script: |
-          docker stop ${{ secrets.PROJECT_NAME }}
-          docker rm ${{ secrets.PROJECT_NAME }}
-          docker pull ${{ secrets.DOCKER_REPO }}/${{ secrets.PROJECT_NAME }}
-          docker run -p 8081:8081 \
-          --name ${{ secrets.PROJECT_NAME }} \
-          -d -v ~/image-store:/image-store skatn/cicd-practice
+  deploy:
+    name: Deploy to server
+    needs: build-docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}  # ec2 인스턴스 퍼블릭 DNS
+          username: ec2-user
+          key: ${{ secrets.PRIVATE_KEY }}
+          script: |
+            docker stop ${{ secrets.PROJECT_NAME }}
+            docker rm ${{ secrets.PROJECT_NAME }}
+            docker pull ${{ secrets.DOCKER_REPO }}/${{ secrets.PROJECT_NAME }}
+            docker run -p ${{ secrets.PORT }}:${{ secrets.PORT }} \
+            --name ${{ secrets.PROJECT_NAME }} \
+            -d -v ~/image-store:/image-store ${{ secrets.DOCKER_REPO }}/${{ secrets.PROJECT_NAME }}
