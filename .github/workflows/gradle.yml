@@ -39,8 +39,8 @@ jobs:
       run: |
         docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
         docker build -t app .
-        docker tag app ${{ secrets.DOCKER_REPO }}/cicd-practice
-        docker push ${{ secrets.DOCKER_REPO }}/cicd-practice
+        docker tag app ${{ secrets.DOCKER_REPO }}/${{ secrets.PROJECT_NAME }}
+        docker push ${{ secrets.DOCKER_REPO }}/${{ secrets.PROJECT_NAME }}
 
     - name: Deploy to server
       uses: appleboy/ssh-action@master
@@ -49,7 +49,9 @@ jobs:
         username: ec2-user
         key: ${{ secrets.PRIVATE_KEY }}
         script: |
-          docker pull ${{ secrets.DOCKER_REPO }}/cicd-practice
-          docker stop $(docker ps -a -q)
-          docker rm $(docker ps --filter 'status=exited' -a -q)
-          docker image prune -a -f
+          docker stop ${{ secrets.PROJECT_NAME }}
+          docker rm ${{ secrets.PROJECT_NAME }}
+          docker pull ${{ secrets.DOCKER_REPO }}/${{ secrets.PROJECT_NAME }}
+          docker run -p 8081:8081 \
+          --name ${{ secrets.PROJECT_NAME }} \
+          -d -v ~/image-store:/image-store skatn/cicd-practice
